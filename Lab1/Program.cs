@@ -117,6 +117,82 @@ namespace Lab1
     }
 
 
+    abstract class MusContent
+    {
+        protected string name;
+        public abstract void show_info();
+    }
+
+
+    class Album : MusContent
+    {
+        public override void show_info()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void add_song()
+        {
+
+        }
+    }
+
+
+    class Performer : MusContent
+    {
+        public override void show_info()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void register_song()
+        {
+
+        }
+
+        public void register_album()
+        {
+
+        }
+    }
+
+
+    class Song : MusContent
+    {
+        public override void show_info()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+
+    class Genre : MusContent
+    {
+        public override void show_info()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+
+    class Library
+    {
+        private List<MusContent> content;
+
+        public List<MusContent> get_news()
+        {
+            List<MusContent> res = new List<MusContent>();
+            return res;
+        }
+
+        public MusContent search()
+        {
+            MusContent res = new Song();
+            return res;
+        }
+    }
+
+
     class Program
     {
         static void Main(string[] args)
