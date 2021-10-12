@@ -4,38 +4,38 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace Lab1
 {
-    
+
     class Context
     {
         State current_state;
 
         public Context(State current_state)
         {
-            this.current_state = current_state;
-            this.current_state.context = this;
+            this.transitionToState(current_state);
         }
 
         public void transitionToState(State state_to_set)
         {
             current_state = state_to_set;
-            current_state.context = this;
+            current_state.Context = this;
         }
 
-        public void draw()
+        private void draw()  // todo make private
         {
             this.current_state.draw();
             Console.WriteLine("type EXIT to exit");
         }
 
-        public void handle(string user_input)
+        private void handle(string user_input)
         {
             Console.WriteLine("Handle your input...");
             this.current_state.handle(user_input);
         }
 
-        public void run()
+        public void run() 
         {
             while (true)
             {
@@ -48,72 +48,71 @@ namespace Lab1
     }
 
 
-    abstract class BaseState
+    abstract class State
     {
+        protected string title;
+        protected const string title_frame = "======"; // string to be drawn from both sides of the title
+        protected string state_description;
+        protected List<State> children = new List<State>(); // states that are accessible from this state 
+        public State Parent { get; set; } = null; // state that can lead to this state
+        public Context Context { get; set; }
+
+        public void become_state_parent(State child)
+        {
+            this.children.Add(child);
+            child.Parent = this;
+        }
+
+        public void handle_navigation(string user_input)
+        {
+            foreach (State child in this.children)
+            {
+                if (user_input == child.title)
+                {
+                    Context.transitionToState(child);
+                }
+            }
+
+            if (user_input == "BACK" && this.Parent != null)
+            {
+                this.Context.transitionToState(this.Parent);
+            }
+        }
+
+        public void draw_navigation_guide()
+        {
+            Console.WriteLine(State.title_frame + this.title + State.title_frame);
+            foreach (State child in this.children)
+            {
+                Console.WriteLine("type " + child.title + " to " + child.state_description);
+            }
+            if (this.Parent != null)
+            {
+                Console.WriteLine("type BACK to return to the previous state");
+            }
+        }
+
         public abstract void handle(string user_input);
         public abstract void draw();
-
     }
 
 
-    class State : BaseState
+    class ConcreteState : State
     {
-        public string title;
-        public string title_frame = "=========="; // todo make constant/define in baseclass
-        public string state_description;
-
-        public State dst_state;  // todo make more than one possible destinations
-        public Dictionary<string, State> options = new Dictionary<string, State>();
-        public State parent_state;
-        public Context context;
-
-        public State(string title, string description)
+        public ConcreteState(string title, string description)
         {
             this.title = title;
             this.state_description = description;
-            this.dst_state = null;
-            this.parent_state = null;
-        }
-
-        public void becomeStateParent(State child)
-        {            
-            this.options.Add(child.title, child);
-            child.parent_state = this;
-        }
-
-        public void setContext(Context context)
-        {
-            this.context = context;
         }
 
         public override void handle(string user_input)
         {
-            // handle navigation
-            foreach (KeyValuePair<string, State> option in this.options)
-            {
-                if (user_input == option.Key)
-                {
-                    context.transitionToState(option.Value);
-                }
-            }
-
-            if (user_input == "BACK" && this.parent_state != null)
-            {
-                this.context.transitionToState(this.parent_state);
-            }
+            this.handle_navigation(user_input);
         }
 
         public override void draw()
         {
-            Console.WriteLine(title_frame + title + title_frame);
-            foreach (KeyValuePair<string, State> option in this.options)
-            {
-                Console.WriteLine("type " + option.Key + " to " + option.Value);
-            }
-            if (this.parent_state != null)
-            {
-                Console.WriteLine("type BACK to return to the previous state");
-            }
+            this.draw_navigation_guide();
         }
     }
 
@@ -123,16 +122,16 @@ namespace Lab1
         static void Main(string[] args)
         {
 
-            // titile parent son
-            State mainMenu = new State("MainMenu", "MainMenu");
-            State news = new State("NEWS", "see the latest news");
-            State explore = new State("EXPLORE", "expore our library");
-            State search = new State("SEARCH", "search for specific things");
-            mainMenu.becomeStateParent(news);
-            mainMenu.becomeStateParent(explore);
-            mainMenu.becomeStateParent(search);
+            //titile parent son
+            State mainMenu = new ConcreteState("MainMenu", "MainMenu");
+            ConcreteState news = new ConcreteState("NEWS", "see the latest news");
+            ConcreteState explore = new ConcreteState("EXPLORE", "expore our library");
+            ConcreteState search = new ConcreteState("SEARCH", "search for specific things");
+            mainMenu.become_state_parent(news);
+            mainMenu.become_state_parent(explore);
+            mainMenu.become_state_parent(search);
             Context app = new Context(mainMenu);
-            app.run();            
+            app.run();
         }
     }
 }
