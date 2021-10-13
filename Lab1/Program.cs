@@ -148,8 +148,8 @@ namespace Lab1
         public override void show_info()
         {
             Console.WriteLine("Album: " + this.Name);
-            Console.WriteLine("Release date: " + this.Release_date.ToShortDateString());
-            Console.WriteLine("Genre: ", this.Album_genre.Name);
+            Console.WriteLine("Release year: " + this.Release_date.Year);
+            Console.WriteLine("Genre: " + this.Album_genre.Name);
             if (this.Album_performer == null)
             {
                 Console.WriteLine("No information about the performer yet");
@@ -170,11 +170,6 @@ namespace Lab1
             {
                 Console.WriteLine("No information about the songs yet");
             }
-        }
-
-        public void add_song()
-        {
-
         }
     }
 
@@ -246,7 +241,7 @@ namespace Lab1
         {
             Console.WriteLine("Song: " + this.Name);
             Console.WriteLine("Genre: " + this.Mus_genre.Name);
-            Console.WriteLine("Release date:" + this.Release_date.ToShortDateString());
+            Console.WriteLine("Release year: " + this.Release_date.Year);
             if (this.Song_performer != null)
             {
                 Console.WriteLine("Performed by: " + this.Song_performer.Name);
@@ -294,16 +289,57 @@ namespace Lab1
             return res;
         }
 
-        //public MusContent search()
-        //{
-        //    MusContent res = new Song(@@);
-        //    return res;
-        //}
+        public List<MusContent> search_by_name(string query_name)
+        {
+            List<MusContent> found_content = new List<MusContent>();
+            foreach (MusContent thing in this.content)
+            {
+                if (thing.Name == query_name)
+                {
+                    found_content.Add(thing);
+                }
+            }
+            return found_content;
+        }
     }
-
 
     class Program
     {
+        
+        static Library build_library()
+        {
+            // todo build seven son album
+            Library lib = new Library();
+
+            // generate content
+            Genre heavy_metal = new Genre("heavy metal");
+            Performer iron_maiden = new Performer("Iron Maiden", new DateTime(1975, 1, 1));
+
+            // ============= SEVENTH OF THE SEVENTH SON ALBUM =============
+            DateTime seventh_son_release = new DateTime(1988, 1, 1);
+            Song moonchild = new Song("Moonchild", heavy_metal, seventh_son_release);
+            Song infinite_drems = new Song("Infinite Dreams", heavy_metal, seventh_son_release);
+            Song can_i_play_with_madness = new Song("Can I Play with Madness", heavy_metal, seventh_son_release);
+            Song the_evil_that_men_do = new Song("The Evil That Men Do", heavy_metal, seventh_son_release);
+            Song seventh_son_of_a_seventh_son = new Song("Seventh Son of a Seventh Son", heavy_metal, seventh_son_release);
+            Song the_prophecy = new Song("The Prophecy", heavy_metal, seventh_son_release);
+            Song the_clairvoyant = new Song("The Clairvoyant", heavy_metal, seventh_son_release);
+            Song only_the_good_die_young = new Song("Only the Good Die Young", heavy_metal, seventh_son_release);
+            List<Song> seventh_son_songs = new List<Song> { moonchild, infinite_drems, can_i_play_with_madness, the_evil_that_men_do,
+            seventh_son_of_a_seventh_son, the_prophecy, the_clairvoyant, only_the_good_die_young};
+
+            Album seventh_son_album = new Album("Seventh Son of a Seventh Son", heavy_metal, seventh_son_release);
+            foreach (Song seventh_son_song in seventh_son_songs)
+            {
+                seventh_son_album.add_song_to_album(seventh_son_song);
+                iron_maiden.register_song(seventh_son_song);
+                lib.add_content(seventh_son_song);
+            }
+            iron_maiden.register_album(seventh_son_album);
+            lib.add_content(seventh_son_album);
+            lib.add_content(iron_maiden);
+            return lib;
+        }
 
         static Context build_app()
         {
@@ -318,8 +354,7 @@ namespace Lab1
 
         static void Main(string[] args)
         {
-            DateTime test = new DateTime(1, 1, 1);
-            Console.WriteLine("string: " + test.ToShortDateString());
+            Library lib = build_library();
             //titile parent son
             Context app = build_app();
             //app.run();
