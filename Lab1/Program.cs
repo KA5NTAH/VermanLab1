@@ -10,7 +10,8 @@ namespace Lab1
 
     class Context
     {
-        State current_state;
+        public State current_state { get; private set; }
+        public Library Context_library { get; set; }
 
         public Context(State current_state)
         {
@@ -31,7 +32,6 @@ namespace Lab1
 
         private void handle(string user_input)
         {
-            Console.WriteLine("Handle your input...");
             this.current_state.handle(user_input);
         }
 
@@ -79,9 +79,14 @@ namespace Lab1
             }
         }
 
-        public void draw_navigation_guide()
+        public void draw_title_string()
         {
             Console.WriteLine(State.title_frame + this.title + State.title_frame);
+        }
+
+        public void draw_navigation_guide()
+        {
+            this.draw_title_string();
             foreach (State child in this.children)
             {
                 Console.WriteLine("type " + child.title + " to " + child.state_description);
@@ -96,10 +101,9 @@ namespace Lab1
         public abstract void draw();
     }
 
-
-    class ConcreteState : State
+    class NavigationState : State
     {
-        public ConcreteState(string title, string description)
+        public NavigationState(string title, string description)
         {
             this.title = title;
             this.state_description = description;
@@ -116,6 +120,105 @@ namespace Lab1
         }
     }
 
+    class SearchByNameState : State
+    {
+        public SearchByNameState(string title, string description)
+        {
+            this.title = title;
+            this.state_description = description;
+        }
+
+        public override void handle(string user_input)
+        {
+            this.handle_navigation(user_input);
+            if (this.Context.current_state != this)
+            {
+                return;
+            }
+            List <MusContent> search_result = this.Context.Context_library.search_by_name(user_input);
+            Console.WriteLine("\n");
+            Console.WriteLine("Found " + search_result.Count);
+            foreach (MusContent found_content in search_result)
+            {
+                found_content.show_info();
+                Console.WriteLine("----");
+                Console.WriteLine("\n");
+            }
+        }
+
+        public override void draw()
+        {
+            this.draw_navigation_guide();
+            Console.WriteLine("Type the name to search for");
+        }
+    }
+
+
+    class SearchByYearState : State
+    {
+        public SearchByYearState(string title, string description)
+        {
+            this.title = title;
+            this.state_description = description;
+        }
+
+        public override void handle(string user_input)
+        {
+            this.handle_navigation(user_input);
+            if (this.Context.current_state != this)
+            {
+                return;
+            }
+            List<MusContent> search_result = this.Context.Context_library.search_by_year(user_input);
+            Console.WriteLine("\n");
+            Console.WriteLine("Found " + search_result.Count);
+            foreach (MusContent found_content in search_result)
+            {
+                found_content.show_info();
+                Console.WriteLine("----");
+                Console.WriteLine("\n");
+            }
+        }
+
+        public override void draw()
+        {
+            this.draw_navigation_guide();
+            Console.WriteLine("Type the START and the FINISH of year span to search in");
+        }
+    }
+
+    class SearchByGenreState : State
+    {
+        public SearchByGenreState(string title, string description)
+        {
+            this.title = title;
+            this.state_description = description;
+        }
+
+        public override void handle(string user_input)
+        {
+            this.handle_navigation(user_input);
+            if (this.Context.current_state != this)
+            {
+                return;
+            }
+            List<MusContent> search_result = this.Context.Context_library.search_by_genre(user_input);
+            Console.WriteLine("\n");
+            Console.WriteLine("Found " + search_result.Count);
+            foreach (MusContent found_content in search_result)
+            {
+                found_content.show_info();
+                Console.WriteLine("----");
+                Console.WriteLine("\n");
+            }
+        }
+
+        public override void draw()
+        {
+            this.draw_navigation_guide();
+            Console.WriteLine("Type the GENRE NAME to search for");
+        }
+    }
 
     abstract class MusContent
     {
@@ -181,10 +284,11 @@ namespace Lab1
         private List<Album> albums;
         private List<Song> songs;
 
-        public Performer(string name, DateTime formation_date)
+        public Performer(string name, Genre genre, DateTime formation_date)
         {
             this.Name = name;
             this.Formation_date = formation_date;
+            this.Performer_genre = genre;
             this.albums = new List<Album>();
             this.songs = new List<Song>();
         }
@@ -268,7 +372,6 @@ namespace Lab1
         }
     }
 
-
     class Library
     {
         private List<MusContent> content;
@@ -291,14 +394,82 @@ namespace Lab1
 
         public List<MusContent> search_by_name(string query_name)
         {
+            query_name = query_name.ToLower();
             List<MusContent> found_content = new List<MusContent>();
             foreach (MusContent thing in this.content)
             {
-                if (thing.Name == query_name)
+                if (thing.Name.ToLower() == query_name)
                 {
                     found_content.Add(thing);
                 }
             }
+            return found_content;
+        }
+
+        public List<MusContent> search_by_genre(string query_name)
+        {
+            query_name = query_name.ToLower();
+            List<MusContent> found_content = new List<MusContent>();
+            foreach (MusContent thing in this.content)
+            {
+                if (thing is Song && ((Song)thing).Mus_genre.Name.ToLower() == query_name)
+                {                    
+                    found_content.Add(thing);                    
+                }
+                else if (thing is Album && ((Album)thing).Album_genre.Name.ToLower() == query_name)
+                {
+                    found_content.Add(thing);   
+                }
+            }
+            return found_content;
+        }
+
+        public List<MusContent> search_by_year(string query_name)
+        {
+            List<MusContent> found_content = new List<MusContent>();
+            int interval_start = 0;
+            int interval_finish = 0;
+            try
+            {
+                string[] interval = query_name.Split(' ');
+                if (interval.Length != 2)
+                {
+                    Console.WriteLine("Invalid interval");
+                    return found_content;
+                }
+                interval_start = int.Parse(interval[0]);
+                interval_finish = int.Parse(interval[1]);
+                if (interval_start > interval_finish)
+                {
+                    Console.WriteLine("Interval length should be more than 0");
+                    return found_content;
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Invalid interval");
+                return found_content;
+            }
+            Console.WriteLine(interval_start.ToString() + " " + interval_finish.ToString());
+            foreach (MusContent thing in this.content)
+            {
+                if (thing is Song)
+                {
+                    int year = ((Song)thing).Release_date.Year;
+                    if (year >= interval_start && year <= interval_finish)
+                    {
+                        found_content.Add(thing);
+                    }
+                }
+                else if (thing is Album)
+                {
+                    int year = ((Album)thing).Release_date.Year;
+                    if (year >= interval_start && year <= interval_finish)
+                    {
+                        found_content.Add(thing);
+                    }
+                }
+            }                            
             return found_content;
         }
     }
@@ -312,7 +483,7 @@ namespace Lab1
 
             // generate content
             Genre heavy_metal = new Genre("heavy metal");
-            Performer iron_maiden = new Performer("Iron Maiden", new DateTime(1975, 1, 1));
+            Performer iron_maiden = new Performer("Iron Maiden", heavy_metal, new DateTime(1975, 1, 1));
 
             // ============= SEVENTH OF THE SEVENTH SON ALBUM =============
             DateTime seventh_son_release = new DateTime(1988, 1, 1);
@@ -360,12 +531,12 @@ namespace Lab1
                 lib.add_content(piece_of_mind_song);
             }
             iron_maiden.register_album(piece_of_mind_album);
-            lib.add_content(piece_of_mind_album);            
+            lib.add_content(piece_of_mind_album);
 
             // ============= THE STARWHEEL ALBUM =============
-            Performer kammarheit = new Performer("Kammarheit", new DateTime(2000, 1, 1));
-            DateTime the_starwheel_release = new DateTime(2005, 1, 1);
             Genre dark_ambient = new Genre("dark ambient");
+            Performer kammarheit = new Performer("Kammarheit", dark_ambient, new DateTime(2000, 1, 1));
+            DateTime the_starwheel_release = new DateTime(2005, 1, 1);            
             Song hypnagoga = new Song("Hypnagoga", dark_ambient, the_starwheel_release);
             Song spatium = new Song("Spatium", dark_ambient, the_starwheel_release);
             Song starwheel_clockwise = new Song("The Starwheel(Clockwise)", dark_ambient, the_starwheel_release);
@@ -396,9 +567,11 @@ namespace Lab1
 
         static Context build_app()
         {
-            State mainMenu = new ConcreteState("MainMenu", "MainMenu");
-            ConcreteState news = new ConcreteState("NEWS", "see the latest news");
-            ConcreteState search = new ConcreteState("SEARCH", "search for specific things");
+            State mainMenu = new NavigationState("MainMenu", "MainMenu");
+            NavigationState news = new NavigationState("NEWS", "see the latest news");
+            NavigationState search = new NavigationState("SEARCH", "search for specific things");
+            SearchByNameState search_by_name = new SearchByNameState("NAME", "search by name");
+            search.become_state_parent(search_by_name);
             mainMenu.become_state_parent(news);
             mainMenu.become_state_parent(search);
             Context app = new Context(mainMenu);
@@ -408,9 +581,16 @@ namespace Lab1
         static void Main(string[] args)
         {
             Library lib = build_library();
+            List < MusContent > res = lib.search_by_year("2000 2010");
+            foreach (MusContent thing in res)
+            {
+                thing.show_info();
+            }
             //titile parent son
-            Context app = build_app();
+            //Context app = build_app();
+            //app.Context_library = lib;
             //app.run();
+            //lib.search_by_year("");
         }
     }
 }
