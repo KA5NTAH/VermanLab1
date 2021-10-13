@@ -119,16 +119,57 @@ namespace Lab1
 
     abstract class MusContent
     {
-        protected string name;
+        public string Name { get; protected set; }
         public abstract void show_info();
     }
 
 
     class Album : MusContent
     {
+        private List<Song> songs;
+        public DateTime Release_date { get; private set; }
+        public Genre Album_genre { get; private set; }
+        public Performer Album_performer { get; set; }
+        private const string song_enumeration_indent = "    ";
+
+        public Album(string name, Genre album_genre, DateTime release_date)
+        {
+            this.Name = name;
+            this.songs = new List<Song>();
+            this.Album_genre = album_genre;
+            this.Release_date = release_date;
+        }
+
+        public void add_song_to_album(Song song)
+        {
+            this.songs.Add(song);
+            song.Song_album = this;
+        }
         public override void show_info()
         {
-            throw new NotImplementedException();
+            Console.WriteLine("Album: " + this.Name);
+            Console.WriteLine("Release date: " + this.Release_date.ToShortDateString());
+            Console.WriteLine("Genre: ", this.Album_genre.Name);
+            if (this.Album_performer == null)
+            {
+                Console.WriteLine("No information about the performer yet");
+            }
+            else
+            {
+                Console.WriteLine("Performed by: " + this.Album_performer.Name);
+            }
+            if (this.songs.Count > 0)
+            {
+                Console.WriteLine("Songs list:");
+                foreach (Song song in songs)
+                {
+                    Console.WriteLine(Album.song_enumeration_indent + song.Name);
+                }
+            }
+            else
+            {
+                Console.WriteLine("No information about the songs yet");
+            }
         }
 
         public void add_song()
@@ -140,9 +181,15 @@ namespace Lab1
 
     class Performer : MusContent
     {
+        public DateTime Formation_date { get; private set; }
+        public Genre Performer_genre { get; private set; }
+        private List<Album> albums;
+        private List<Song> songs;
+
         public override void show_info()
         {
-            throw new NotImplementedException();
+            this.albums = new List<Album>();
+            this.songs = new List<Song>();
         }
 
         public void register_song()
@@ -159,18 +206,35 @@ namespace Lab1
 
     class Song : MusContent
     {
+        public DateTime Release_date { get; private set; }
+        public Genre Mus_genre { get; private set; }
+        public Performer Song_performer { get; set; }
+        public Album Song_album { get; set; }
+
+        public Song(string name, Genre mus_genre, DateTime release_date)
+        {
+            this.Name = name;
+            this.Mus_genre = mus_genre;
+            this.Release_date = release_date;
+        }
+
         public override void show_info()
         {
-            throw new NotImplementedException();
+            string description = "Song: " + this.Name; 
         }
     }
 
 
     class Genre : MusContent
     {
+        public Genre(string name)
+        {
+            this.Name = name;
+        }
+
         public override void show_info()
         {
-            throw new NotImplementedException();
+            Console.WriteLine("Genre: " + this.Name);
         }
     }
 
@@ -179,35 +243,51 @@ namespace Lab1
     {
         private List<MusContent> content;
 
+        public Library()
+        {
+            content = new List<MusContent>();
+        }
+
+        public void add_content(MusContent content)
+        {
+            this.content.Add(content);
+        }
+
         public List<MusContent> get_news()
         {
             List<MusContent> res = new List<MusContent>();
             return res;
         }
 
-        public MusContent search()
-        {
-            MusContent res = new Song();
-            return res;
-        }
+        //public MusContent search()
+        //{
+        //    MusContent res = new Song(@@);
+        //    return res;
+        //}
     }
 
 
     class Program
     {
-        static void Main(string[] args)
-        {
 
-            //titile parent son
+        static Context build_app()
+        {
             State mainMenu = new ConcreteState("MainMenu", "MainMenu");
             ConcreteState news = new ConcreteState("NEWS", "see the latest news");
-            ConcreteState explore = new ConcreteState("EXPLORE", "expore our library");
             ConcreteState search = new ConcreteState("SEARCH", "search for specific things");
             mainMenu.become_state_parent(news);
-            mainMenu.become_state_parent(explore);
             mainMenu.become_state_parent(search);
             Context app = new Context(mainMenu);
-            app.run();
+            return app;
+        }
+
+        static void Main(string[] args)
+        {
+            DateTime test = new DateTime(1, 1, 1);
+            Console.WriteLine("string: " + test.ToShortDateString());
+            //titile parent son
+            Context app = build_app();
+            //app.run();
         }
     }
 }
