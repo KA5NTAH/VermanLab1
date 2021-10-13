@@ -47,7 +47,6 @@ namespace Lab1
         }
     }
 
-
     abstract class State
     {
         protected string title;
@@ -153,7 +152,6 @@ namespace Lab1
         }
     }
 
-
     class SearchByYearState : State
     {
         public SearchByYearState(string title, string description)
@@ -226,7 +224,6 @@ namespace Lab1
         public abstract void show_info();
     }
 
-
     class Album : MusContent
     {
         private List<Song> songs;
@@ -275,7 +272,6 @@ namespace Lab1
             }
         }
     }
-
 
     class Performer : MusContent
     {
@@ -326,7 +322,6 @@ namespace Lab1
         }
     }
 
-
     class Song : MusContent
     {
         public DateTime Release_date { get; private set; }
@@ -357,7 +352,6 @@ namespace Lab1
            
         }
     }
-
 
     class Genre : MusContent
     {
@@ -450,7 +444,6 @@ namespace Lab1
                 Console.WriteLine("Invalid interval");
                 return found_content;
             }
-            Console.WriteLine(interval_start.ToString() + " " + interval_finish.ToString());
             foreach (MusContent thing in this.content)
             {
                 if (thing is Song)
@@ -570,8 +563,12 @@ namespace Lab1
             State mainMenu = new NavigationState("MainMenu", "MainMenu");
             NavigationState news = new NavigationState("NEWS", "see the latest news");
             NavigationState search = new NavigationState("SEARCH", "search for specific things");
-            SearchByNameState search_by_name = new SearchByNameState("NAME", "search by name");
+            SearchByNameState search_by_name = new SearchByNameState("SEARCH BY NAME", "search by name");
+            SearchByYearState search_by_year = new SearchByYearState("SEARCH BY YEAR", "search by year");
+            SearchByGenreState search_by_genre = new SearchByGenreState("SEARCH BY GENRE", "search by genre");
             search.become_state_parent(search_by_name);
+            search.become_state_parent(search_by_year);
+            search.become_state_parent(search_by_genre);
             mainMenu.become_state_parent(news);
             mainMenu.become_state_parent(search);
             Context app = new Context(mainMenu);
@@ -581,16 +578,9 @@ namespace Lab1
         static void Main(string[] args)
         {
             Library lib = build_library();
-            List < MusContent > res = lib.search_by_year("2000 2010");
-            foreach (MusContent thing in res)
-            {
-                thing.show_info();
-            }
-            //titile parent son
-            //Context app = build_app();
-            //app.Context_library = lib;
-            //app.run();
-            //lib.search_by_year("");
+            Context app = build_app();
+            app.Context_library = lib;
+            app.run();
         }
     }
 }
