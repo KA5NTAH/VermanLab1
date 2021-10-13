@@ -308,7 +308,6 @@ namespace Lab1
         
         static Library build_library()
         {
-            // todo build seven son album
             Library lib = new Library();
 
             // generate content
@@ -337,6 +336,60 @@ namespace Lab1
             }
             iron_maiden.register_album(seventh_son_album);
             lib.add_content(seventh_son_album);
+
+
+            // ============= PIECE OF MIND ALBUM =============
+            DateTime piece_of_mind_release = new DateTime(1983, 1, 1);
+            Song where_eagles_dare = new Song("Where Eagles Date", heavy_metal, piece_of_mind_release);
+            Song revelations = new Song("Revelations", heavy_metal, piece_of_mind_release);
+            Song flight_of_icarus = new Song("Flight of Icarus", heavy_metal, piece_of_mind_release);
+            Song die_with_your_boots_on = new Song("Die with Your Boots On", heavy_metal, piece_of_mind_release);
+            Song the_trooper = new Song("The Trooper", heavy_metal, piece_of_mind_release);
+            Song still_life = new Song("Still Life", heavy_metal, piece_of_mind_release);
+            Song quest_for_fire = new Song("Quest fir Fire", heavy_metal, piece_of_mind_release);
+            Song sun_and_steel = new Song("Sun and Steel", heavy_metal, piece_of_mind_release);
+            Song to_tame_a_land = new Song("To Tame A Land", heavy_metal, piece_of_mind_release);
+            List<Song> piece_of_mind_songs = new List<Song> { where_eagles_dare, revelations, flight_of_icarus, die_with_your_boots_on,
+            the_trooper, still_life, quest_for_fire, sun_and_steel, to_tame_a_land};
+
+            Album piece_of_mind_album = new Album("Piece of Mind", heavy_metal, piece_of_mind_release);
+            foreach (Song piece_of_mind_song in piece_of_mind_songs)
+            {
+                piece_of_mind_album.add_song_to_album(piece_of_mind_song);
+                iron_maiden.register_song(piece_of_mind_song);
+                lib.add_content(piece_of_mind_song);
+            }
+            iron_maiden.register_album(piece_of_mind_album);
+            lib.add_content(piece_of_mind_album);            
+
+            // ============= THE STARWHEEL ALBUM =============
+            Performer kammarheit = new Performer("Kammarheit", new DateTime(2000, 1, 1));
+            DateTime the_starwheel_release = new DateTime(2005, 1, 1);
+            Genre dark_ambient = new Genre("dark ambient");
+            Song hypnagoga = new Song("Hypnagoga", dark_ambient, the_starwheel_release);
+            Song spatium = new Song("Spatium", dark_ambient, the_starwheel_release);
+            Song starwheel_clockwise = new Song("The Starwheel(Clockwise)", dark_ambient, the_starwheel_release);
+            Song klockstapeln = new Song("Klockstapeln", dark_ambient, the_starwheel_release);
+            Song starwheel_counterclockwise = new Song("The Starwheel(Counter Clockwise)", dark_ambient, the_starwheel_release);
+            Song room_between_the_rooms = new Song("A Room Between the Rooms", dark_ambient, the_starwheel_release);
+            Song sleep_after_toyle = new Song("Sleep After Toyle, Port After Stormie Seas", dark_ambient, the_starwheel_release);
+            Song all_quiet_frozen_scenes = new Song("All Quiet in the Land of Frozen Scenes", dark_ambient, the_starwheel_release);
+
+            Album the_starwheel_album = new Album("The Starwheel", dark_ambient, the_starwheel_release);
+            List<Song> starwheel_songs = new List<Song> { hypnagoga, spatium, starwheel_clockwise, klockstapeln, starwheel_counterclockwise,
+            room_between_the_rooms, sleep_after_toyle, all_quiet_frozen_scenes };
+
+            foreach (Song starwheel_song in starwheel_songs)
+            {
+                the_starwheel_album.add_song_to_album(starwheel_song);
+                kammarheit.register_song(starwheel_song);
+                lib.add_content(starwheel_song);                
+            }
+            kammarheit.register_album(the_starwheel_album);
+            lib.add_content(the_starwheel_album);
+
+            // add all performers
+            lib.add_content(kammarheit);
             lib.add_content(iron_maiden);
             return lib;
         }
