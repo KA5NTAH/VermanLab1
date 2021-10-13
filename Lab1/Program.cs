@@ -186,20 +186,44 @@ namespace Lab1
         private List<Album> albums;
         private List<Song> songs;
 
-        public override void show_info()
+        public Performer(string name, DateTime formation_date)
         {
+            this.Name = name;
+            this.Formation_date = formation_date;
             this.albums = new List<Album>();
             this.songs = new List<Song>();
         }
 
-        public void register_song()
+        public override void show_info()
         {
-
+            Console.WriteLine("Musical performer: " + this.Name);
+            Console.WriteLine("Genre: " + this.Performer_genre.Name);
+            Console.WriteLine("Formation date: " + this.Formation_date.ToShortDateString());
+            if (this.albums.Count > 0)
+            {
+                Console.WriteLine("Albums by " + this.Name);
+                foreach (Album a in this.albums)
+                {
+                    Console.WriteLine(a.Name);
+                }
+            }
+            else
+            {
+                Console.WriteLine("No information aobout the albums");
+            }
+            
         }
 
-        public void register_album()
+        public void register_song(Song song)
         {
+            this.songs.Add(song);
+            song.Song_performer = this;
+        }
 
+        public void register_album(Album album)
+        {
+            this.albums.Add(album);
+            album.Album_performer = this;
         }
     }
 
@@ -220,7 +244,18 @@ namespace Lab1
 
         public override void show_info()
         {
-            string description = "Song: " + this.Name; 
+            Console.WriteLine("Song: " + this.Name);
+            Console.WriteLine("Genre: " + this.Mus_genre.Name);
+            Console.WriteLine("Release date:" + this.Release_date.ToShortDateString());
+            if (this.Song_performer != null)
+            {
+                Console.WriteLine("Performed by: " + this.Song_performer.Name);
+            }
+            if (this.Song_album != null)
+            {
+                Console.WriteLine("Album: " + this.Song_album.Name);
+            }
+           
         }
     }
 
