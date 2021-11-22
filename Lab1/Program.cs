@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,23 +9,23 @@ using System.Threading.Tasks;
 namespace Lab1
 {
 
-    class Context
+    class Context<T> where T : MusContent
     {
-        public State current_state { get; private set; }
-        public Library Context_library { get; set; }
+        public State<T> current_state { get; private set; }
+        public GenericLibrary<T> Context_library { get; set; }
 
-        public Context(State current_state)
+        public Context(State<T> current_state)
         {
             this.transitionToState(current_state);
         }
 
-        public void transitionToState(State state_to_set)
+        public void transitionToState(State<T> state_to_set)
         {
             current_state = state_to_set;
             current_state.Context = this;
         }
 
-        private void draw()  // todo make private
+        private void draw()
         {
             this.current_state.draw();
             Console.WriteLine("type EXIT to exit");
@@ -35,7 +36,7 @@ namespace Lab1
             this.current_state.handle(user_input);
         }
 
-        public void run() 
+        public void run()
         {
             while (true)
             {
@@ -47,16 +48,16 @@ namespace Lab1
         }
     }
 
-    abstract class State
+    abstract class State<T> where T : MusContent
     {
         protected string title;
         protected const string title_frame = "======"; // string to be drawn from both sides of the title
         protected string state_description;
-        protected List<State> children = new List<State>(); // states that are accessible from this state 
-        public State Parent { get; set; } = null; // state that can lead to this state
-        public Context Context { get; set; }
+        protected List<State<T>> children = new List<State<T>>(); // states that are accessible from this state 
+        public State<T> Parent { get; set; } = null; // state that can lead to this state
+        public Context<T> Context { get; set; }
 
-        public void become_state_parent(State child)
+        public void become_state_parent(State<T> child)
         {
             this.children.Add(child);
             child.Parent = this;
@@ -64,7 +65,7 @@ namespace Lab1
 
         public void handle_navigation(string user_input)
         {
-            foreach (State child in this.children)
+            foreach (State<T> child in this.children)
             {
                 if (user_input == child.title)
                 {
@@ -80,13 +81,13 @@ namespace Lab1
 
         public void draw_title_string()
         {
-            Console.WriteLine(State.title_frame + this.title + State.title_frame);
+            Console.WriteLine(State<T>.title_frame + this.title + State<T>.title_frame);
         }
 
         public void draw_navigation_guide()
         {
             this.draw_title_string();
-            foreach (State child in this.children)
+            foreach (State<T> child in this.children)
             {
                 Console.WriteLine("type " + child.title + " to " + child.state_description);
             }
@@ -100,7 +101,7 @@ namespace Lab1
         public abstract void draw();
     }
 
-    class NavigationState : State
+    class NavigationState<T> : State<T> where T : MusContent
     {
         public NavigationState(string title, string description)
         {
@@ -119,7 +120,7 @@ namespace Lab1
         }
     }
 
-    class SearchByNameState : State
+    class SearchByNameState<T> : State<T> where T : MusContent
     {
         public SearchByNameState(string title, string description)
         {
@@ -134,12 +135,12 @@ namespace Lab1
             {
                 return;
             }
-            List <MusContent> search_result = this.Context.Context_library.search_by_name(user_input);
-            Console.WriteLine("\n");
+            List<T> search_result = this.Context.Context_library.search_by_name(user_input);
+            Console.WriteLine("\n");            
             Console.WriteLine("Found " + search_result.Count);
-            foreach (MusContent found_content in search_result)
+            foreach (T found_content in search_result)
             {
-                found_content.show_info();
+                (found_content as MusContent).show_info();
                 Console.WriteLine("----");
                 Console.WriteLine("\n");
             }
@@ -152,7 +153,7 @@ namespace Lab1
         }
     }
 
-    class SearchByYearState : State
+    class SearchByYearState<T> : State<T> where T : MusContent
     {
         public SearchByYearState(string title, string description)
         {
@@ -167,7 +168,7 @@ namespace Lab1
             {
                 return;
             }
-            List<MusContent> search_result = this.Context.Context_library.search_by_year(user_input);
+            List<T> search_result = this.Context.Context_library.search_by_year(user_input);
             Console.WriteLine("\n");
             Console.WriteLine("Found " + search_result.Count);
             foreach (MusContent found_content in search_result)
@@ -185,7 +186,7 @@ namespace Lab1
         }
     }
 
-    class SearchByGenreState : State
+    class SearchByGenreState<T> : State<T> where T : MusContent
     {
         public SearchByGenreState(string title, string description)
         {
@@ -200,10 +201,10 @@ namespace Lab1
             {
                 return;
             }
-            List<MusContent> search_result = this.Context.Context_library.search_by_genre(user_input);
+            List<T> search_result = this.Context.Context_library.search_by_genre(user_input);
             Console.WriteLine("\n");
             Console.WriteLine("Found " + search_result.Count);
-            foreach (MusContent found_content in search_result)
+            foreach (T found_content in search_result)
             {
                 found_content.show_info();
                 Console.WriteLine("----");
@@ -218,13 +219,16 @@ namespace Lab1
         }
     }
 
+    // todo denounce genre as class??
+    // todo denounce performer as content 
+    // todo denounce 
     abstract class MusContent
     {
         public string Name { get; protected set; }
         public abstract void show_info();
     }
 
-    class Album : MusContent
+    class Album : MusContent, IEquatable<Album>
     {
         private List<Song> songs;
         public DateTime Release_date { get; private set; }
@@ -238,6 +242,19 @@ namespace Lab1
             this.songs = new List<Song>();
             this.Album_genre = album_genre;
             this.Release_date = release_date;
+        }
+
+        public bool Equals(Album other)
+        {
+            return (this.Name == other.Name &&
+                    this.Release_date == other.Release_date &&
+                    this.Album_genre == other.Album_genre &&
+                    this.Album_performer == other.Album_performer);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
 
         public void add_song_to_album(Song song)
@@ -273,12 +290,24 @@ namespace Lab1
         }
     }
 
-    class Performer : MusContent
+    class Performer : MusContent, IEquatable<Performer>
     {
         public DateTime Formation_date { get; private set; }
         public Genre Performer_genre { get; private set; }
         private List<Album> albums;
         private List<Song> songs;
+
+        public bool Equals(Performer other)
+        {
+            return (this.Name == other.Name &&
+                this.Performer_genre == other.Performer_genre &&
+                this.Formation_date == other.Formation_date);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
 
         public Performer(string name, Genre genre, DateTime formation_date)
         {
@@ -306,7 +335,7 @@ namespace Lab1
             {
                 Console.WriteLine("No information aobout the albums");
             }
-            
+
         }
 
         public void register_song(Song song)
@@ -322,12 +351,25 @@ namespace Lab1
         }
     }
 
-    class Song : MusContent
+    class Song : MusContent, IEquatable<Song>
     {
         public DateTime Release_date { get; private set; }
         public Genre Mus_genre { get; private set; }
         public Performer Song_performer { get; set; }
         public Album Song_album { get; set; }
+
+        public bool Equals(Song other)
+        {
+            return (this.Name == other.Name &&
+                this.Release_date == other.Release_date &&
+                this.Mus_genre == other.Mus_genre &&
+                this.Song_performer == other.Song_performer);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
 
         public Song(string name, Genre mus_genre, DateTime release_date)
         {
@@ -349,11 +391,11 @@ namespace Lab1
             {
                 Console.WriteLine("Album: " + this.Song_album.Name);
             }
-           
+
         }
     }
 
-    class Genre : MusContent
+    class Genre : MusContent, IEquatable<Genre>
     {
         public Genre(string name)
         {
@@ -364,20 +406,67 @@ namespace Lab1
         {
             Console.WriteLine("Genre: " + this.Name);
         }
-    }
 
-    class Library
-    {
-        private List<MusContent> content;
-
-        public Library()
+        public bool Equals(Genre other)
         {
-            content = new List<MusContent>();
+            return this.Name == other.Name;
         }
 
-        public void add_content(MusContent content)
+        public override int GetHashCode()
         {
-            this.content.Add(content);
+            return base.GetHashCode();
+        }
+    }
+
+    class MusicEnumerator<T> : IEnumerator<T> where T : MusContent
+    {
+        private GenericLibrary<T> musCollection;
+        private int curIndex;
+        private T curContentPiece;
+
+        public MusicEnumerator(GenericLibrary<T> library)
+        {
+            this.musCollection = library;
+            this.curIndex = -1;
+            this.curContentPiece = default(T);
+        }
+
+        public bool MoveNext()
+        {
+            if (++this.curIndex >= this.musCollection.Count)
+                return false;
+            else
+                this.curContentPiece = this.musCollection[this.curIndex];
+            return true;
+        }
+
+        public void Reset()
+        {
+            this.curIndex = -1;
+        }
+
+        void IDisposable.Dispose() { }
+
+        public T Current
+        {
+            get { return this.curContentPiece; }
+        }
+
+        object IEnumerator.Current
+        {
+            get { return this.Current; }
+        }
+    }
+
+    // todo migrate on generic library
+    class GenericLibrary<T> : ICollection<T> where T : MusContent
+    {
+
+        private List<T> innerCollection = new List<T>();
+
+        public GenericLibrary()
+        {
+            this.innerCollection = new List<T>();
         }
 
         public List<MusContent> get_news()
@@ -386,13 +475,31 @@ namespace Lab1
             return res;
         }
 
-        public List<MusContent> search_by_name(string query_name)
+        public List<T> search_by_name(string query_name)
         {
             query_name = query_name.ToLower();
-            List<MusContent> found_content = new List<MusContent>();
-            foreach (MusContent thing in this.content)
+            List<T> found_content = new List<T>();
+            foreach (T contentPiece in this.innerCollection)
             {
-                if (thing.Name.ToLower() == query_name)
+                if (contentPiece.Name.ToLower() == query_name)
+                {
+                    found_content.Add(contentPiece);
+                }
+            }
+            return found_content;
+        }
+
+        public List<T> search_by_genre(string query_name)
+        {
+            query_name = query_name.ToLower();
+            List<T> found_content = new List<T>();
+            foreach (T thing in this.innerCollection)
+            {
+                if (thing is Song && (thing as Song).Mus_genre.Name.ToLower() == query_name)
+                {
+                    found_content.Add(thing);
+                }
+                else if (thing is Album && (thing as Album).Album_genre.Name.ToLower() == query_name)
                 {
                     found_content.Add(thing);
                 }
@@ -400,27 +507,9 @@ namespace Lab1
             return found_content;
         }
 
-        public List<MusContent> search_by_genre(string query_name)
+        public List<T> search_by_year(string query_name)
         {
-            query_name = query_name.ToLower();
-            List<MusContent> found_content = new List<MusContent>();
-            foreach (MusContent thing in this.content)
-            {
-                if (thing is Song && ((Song)thing).Mus_genre.Name.ToLower() == query_name)
-                {                    
-                    found_content.Add(thing);                    
-                }
-                else if (thing is Album && ((Album)thing).Album_genre.Name.ToLower() == query_name)
-                {
-                    found_content.Add(thing);   
-                }
-            }
-            return found_content;
-        }
-
-        public List<MusContent> search_by_year(string query_name)
-        {
-            List<MusContent> found_content = new List<MusContent>();
+            List<T> found_content = new List<T>();
             int interval_start = 0;
             int interval_finish = 0;
             try
@@ -444,35 +533,172 @@ namespace Lab1
                 Console.WriteLine("Invalid interval");
                 return found_content;
             }
-            foreach (MusContent thing in this.content)
+            foreach (T contentPiece in this.innerCollection)
             {
-                if (thing is Song)
+                if (contentPiece is Song)
                 {
-                    int year = ((Song)thing).Release_date.Year;
+                    int year = (contentPiece as Song).Release_date.Year;
                     if (year >= interval_start && year <= interval_finish)
                     {
-                        found_content.Add(thing);
+                        found_content.Add(contentPiece);
                     }
                 }
-                else if (thing is Album)
+                else if (contentPiece is Album)
                 {
-                    int year = ((Album)thing).Release_date.Year;
+                    int year = (contentPiece as Album).Release_date.Year;
                     if (year >= interval_start && year <= interval_finish)
                     {
-                        found_content.Add(thing);
+                        found_content.Add(contentPiece);
                     }
                 }
-            }                            
+            }
             return found_content;
+        }
+
+        // Collection interface implementation
+        public IEnumerator<T> GetEnumerator()
+        {
+            return new MusicEnumerator<T>(this);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return new MusicEnumerator<T>(this);
+        }        
+
+        public T this[int index]
+        {
+            get { return (T)this.innerCollection[index]; }
+            set { this.innerCollection[index] = value; }
+        }
+
+        public bool Contains(T item)
+        {
+            bool found = false;
+            foreach (T contentPiece in this.innerCollection)
+            {
+                if (item.Equals(contentPiece)) found = true;
+            }
+            return found;
+        }
+
+        public bool Contains(T item, EqualityComparer<T> comparator)
+        {
+            bool found = false;
+            foreach (T contentPiece in this.innerCollection)
+            {
+                if (comparator.Equals(item, contentPiece)) found = true;
+            }
+            return found;
+        }
+
+        public void Add(T value)
+        {
+            this.innerCollection.Add(value);
+        }
+
+        public void Clear()
+        {
+            this.innerCollection.Clear();
+        }
+
+        public void CopyTo(T[] targetArray, int targetIndex)
+        {
+            if (targetArray == null)
+                throw new ArgumentNullException("target array is null");
+            if (targetIndex < 0)
+                throw new ArgumentOutOfRangeException("target index valu");
+            if (Count > targetArray.Length - targetIndex + 1)
+                throw new ArgumentException("not enough space for elements to be copied");
+            for (int i = 0; i < innerCollection.Count; i++)
+                targetArray[i + targetIndex] = this.innerCollection[i];
+        }
+
+        public int Count
+        {
+            get
+            {
+                return innerCollection.Count;
+            }
+        }
+
+        public bool IsReadOnly
+        {
+            get { return false; }
+        }
+
+        public bool Remove(T item)
+        {
+            bool result = false;
+            for (int i = 0; i < innerCollection.Count; i++)
+            {
+                T curContent = (T)this.innerCollection[i];
+                if (true)  // fixme write real condition
+                {
+                    this.innerCollection.RemoveAt(i);
+                    result = true;
+                    break;
+                }
+            }
+            return result;
         }
     }
 
-    class Program
+
+    // contravariance sample classes
+    class Base
     {
-        
-        static Library build_library()
+        public virtual void print()
         {
-            Library lib = new Library();
+            System.Console.WriteLine("Base print");
+        }
+    }
+    class Derived : Base 
+    {
+        public override void print()
+        {
+            System.Console.WriteLine("Derived print");
+        }
+    }
+    interface IPrinter<in T>
+    {
+        void show_info(T sample);
+    }
+    class ContravarianceSample<T> : IPrinter<T> where T : Base
+    {
+        public void show_info(T sample)
+        {
+            sample.print();
+        }
+
+        public void non_interface_foo()
+        {
+            Console.WriteLine("Non interface foo");
+        }
+    }
+
+    // comparer class 
+    class MusicalContentComparer<T> : IComparer<T> where T : MusContent
+    {
+        private Func<T, T, int> sort_method;
+        public MusicalContentComparer(Func<T, T, int> user_sort_logic)
+        {
+            this.sort_method = user_sort_logic; 
+        }
+
+        public int Compare(T first, T second)
+        {
+            int sort_result = this.sort_method(first, second);
+            return sort_result;
+        }
+
+    }
+
+    class Program
+    {        
+        static GenericLibrary<MusContent> build_generics_library()
+        {
+            GenericLibrary<MusContent> lib = new GenericLibrary<MusContent>();
 
             // generate content
             Genre heavy_metal = new Genre("heavy metal");
@@ -496,10 +722,10 @@ namespace Lab1
             {
                 seventh_son_album.add_song_to_album(seventh_son_song);
                 iron_maiden.register_song(seventh_son_song);
-                lib.add_content(seventh_son_song);
+                lib.Add(seventh_son_song);
             }
             iron_maiden.register_album(seventh_son_album);
-            lib.add_content(seventh_son_album);
+            lib.Add(seventh_son_album);
 
 
             // ============= PIECE OF MIND ALBUM =============
@@ -521,15 +747,15 @@ namespace Lab1
             {
                 piece_of_mind_album.add_song_to_album(piece_of_mind_song);
                 iron_maiden.register_song(piece_of_mind_song);
-                lib.add_content(piece_of_mind_song);
+                lib.Add(piece_of_mind_song);
             }
             iron_maiden.register_album(piece_of_mind_album);
-            lib.add_content(piece_of_mind_album);
+            lib.Add(piece_of_mind_album);
 
             // ============= THE STARWHEEL ALBUM =============
             Genre dark_ambient = new Genre("dark ambient");
             Performer kammarheit = new Performer("Kammarheit", dark_ambient, new DateTime(2000, 1, 1));
-            DateTime the_starwheel_release = new DateTime(2005, 1, 1);            
+            DateTime the_starwheel_release = new DateTime(2005, 1, 1);
             Song hypnagoga = new Song("Hypnagoga", dark_ambient, the_starwheel_release);
             Song spatium = new Song("Spatium", dark_ambient, the_starwheel_release);
             Song starwheel_clockwise = new Song("The Starwheel(Clockwise)", dark_ambient, the_starwheel_release);
@@ -547,40 +773,61 @@ namespace Lab1
             {
                 the_starwheel_album.add_song_to_album(starwheel_song);
                 kammarheit.register_song(starwheel_song);
-                lib.add_content(starwheel_song);                
+                lib.Add(starwheel_song);
             }
             kammarheit.register_album(the_starwheel_album);
-            lib.add_content(the_starwheel_album);
+            lib.Add(the_starwheel_album);
 
             // add all performers
-            lib.add_content(kammarheit);
-            lib.add_content(iron_maiden);
+            lib.Add(kammarheit);
+            lib.Add(iron_maiden);
             return lib;
         }
 
-        static Context build_app()
+        static Context<MusContent> build_app()
         {
-            State mainMenu = new NavigationState("MainMenu", "MainMenu");
-            NavigationState news = new NavigationState("NEWS", "see the latest news");
-            NavigationState search = new NavigationState("SEARCH", "search for specific things");
-            SearchByNameState search_by_name = new SearchByNameState("SEARCH BY NAME", "search by name");
-            SearchByYearState search_by_year = new SearchByYearState("SEARCH BY YEAR", "search by year");
-            SearchByGenreState search_by_genre = new SearchByGenreState("SEARCH BY GENRE", "search by genre");
+            State<MusContent> mainMenu = new NavigationState<MusContent>("MainMenu", "MainMenu");
+            NavigationState<MusContent> news = new NavigationState<MusContent>("NEWS", "see the latest news");
+            NavigationState<MusContent> search = new NavigationState<MusContent>("SEARCH", "search for specific things");
+            SearchByNameState<MusContent> search_by_name = new SearchByNameState<MusContent>("SEARCH BY NAME", "search by name");
+            SearchByYearState<MusContent> search_by_year = new SearchByYearState<MusContent>("SEARCH BY YEAR", "search by year");
+            SearchByGenreState<MusContent> search_by_genre = new SearchByGenreState<MusContent>("SEARCH BY GENRE", "search by genre");
             search.become_state_parent(search_by_name);
             search.become_state_parent(search_by_year);
             search.become_state_parent(search_by_genre);
             mainMenu.become_state_parent(news);
             mainMenu.become_state_parent(search);
-            Context app = new Context(mainMenu);
+            Context<MusContent> app = new Context<MusContent>(mainMenu);
             return app;
+        }
+
+        static void covar_contravar_examples()
+        {
+            // covariance example 
+            GenericLibrary<Song> song_lib = new GenericLibrary<Song>();
+            DateTime seventh_son_release = new DateTime(1988, 1, 1);
+            Song s1 = new Song("Moonchild", new Genre("heavy_metal"), seventh_son_release);
+            song_lib.Add(s1);
+
+            IEnumerable<Song> song_cannon = (IEnumerable<Song>)song_lib;
+            IEnumerable<MusContent> musical_cannon = song_cannon;
+            IEnumerator<Song> song_enum = song_cannon.GetEnumerator();
+            IEnumerator<MusContent> mus_enum = musical_cannon.GetEnumerator();
+
+            // contravariance examle 
+            ContravarianceSample<Base> contravar_sampe = new ContravarianceSample<Base>();
+            IPrinter<Base> base_printer = (IPrinter<Base>) contravar_sampe;
+            IPrinter<Derived> derived_printer = base_printer;
+            derived_printer.show_info(new Derived());
         }
 
         static void Main(string[] args)
         {
-            Library lib = build_library();
-            Context app = build_app();
-            app.Context_library = lib;
-            app.run();
+            GenericLibrary<MusContent> generic_lib  = build_generics_library();
+            Context<MusContent> app = build_app();
+            app.Context_library = generic_lib;
+            app.run();            
+            //covar_contravar_examples();
         }
     }
 }
