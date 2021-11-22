@@ -222,39 +222,42 @@ namespace Lab1
     // todo denounce genre as class??
     // todo denounce performer as content 
     // todo denounce 
-    abstract class MusContent
+
+    abstract class MusContent : IEquatable<MusContent>
     {
         public string Name { get; protected set; }
+        public DateTime Release_date { get; protected set; }
+        public string Genre { get; protected set; }
+        public Performer Performer { get; set; }
         public abstract void show_info();
-    }
 
-    class Album : MusContent, IEquatable<Album>
-    {
-        private List<Song> songs;
-        public DateTime Release_date { get; private set; }
-        public Genre Album_genre { get; private set; }
-        public Performer Album_performer { get; set; }
-        private const string song_enumeration_indent = "    ";
-
-        public Album(string name, Genre album_genre, DateTime release_date)
+        public bool Equals(MusContent other)
         {
-            this.Name = name;
-            this.songs = new List<Song>();
-            this.Album_genre = album_genre;
-            this.Release_date = release_date;
-        }
-
-        public bool Equals(Album other)
-        {
+            Console.WriteLine("INSIDE MUS CONTENT CHECK");
             return (this.Name == other.Name &&
-                    this.Release_date == other.Release_date &&
-                    this.Album_genre == other.Album_genre &&
-                    this.Album_performer == other.Album_performer);
+                this.Release_date == other.Release_date &&
+                this.Genre == other.Genre &&
+                this.Name == other.Name &&
+                this.Performer == other.Performer);
         }
 
         public override int GetHashCode()
         {
             return base.GetHashCode();
+        }
+    }
+
+    class Album : MusContent
+    {
+        private List<Song> songs;
+        private const string song_enumeration_indent = "    ";
+
+        public Album(string name, string album_genre, DateTime release_date)
+        {
+            this.Name = name;
+            this.songs = new List<Song>();
+            this.Genre = album_genre;
+            this.Release_date = release_date;
         }
 
         public void add_song_to_album(Song song)
@@ -266,14 +269,14 @@ namespace Lab1
         {
             Console.WriteLine("Album: " + this.Name);
             Console.WriteLine("Release year: " + this.Release_date.Year);
-            Console.WriteLine("Genre: " + this.Album_genre.Name);
-            if (this.Album_performer == null)
+            Console.WriteLine("Genre: " + this.Genre);
+            if (this.Performer == null)
             {
                 Console.WriteLine("No information about the performer yet");
             }
             else
             {
-                Console.WriteLine("Performed by: " + this.Album_performer.Name);
+                Console.WriteLine("Performed by: " + this.Performer.Name);
             }
             if (this.songs.Count > 0)
             {
@@ -290,26 +293,15 @@ namespace Lab1
         }
     }
 
-    class Performer : MusContent, IEquatable<Performer>
+    class Performer : IEquatable<Performer>
     {
+        public string Name {get; private set;}
         public DateTime Formation_date { get; private set; }
-        public Genre Performer_genre { get; private set; }
+        public string Performer_genre { get; private set; }
         private List<Album> albums;
         private List<Song> songs;
 
-        public bool Equals(Performer other)
-        {
-            return (this.Name == other.Name &&
-                this.Performer_genre == other.Performer_genre &&
-                this.Formation_date == other.Formation_date);
-        }
-
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
-
-        public Performer(string name, Genre genre, DateTime formation_date)
+        public Performer(string name, string genre, DateTime formation_date)
         {
             this.Name = name;
             this.Formation_date = formation_date;
@@ -318,103 +310,68 @@ namespace Lab1
             this.songs = new List<Song>();
         }
 
-        public override void show_info()
-        {
-            Console.WriteLine("Musical performer: " + this.Name);
-            Console.WriteLine("Genre: " + this.Performer_genre.Name);
-            Console.WriteLine("Formation date: " + this.Formation_date.ToShortDateString());
-            if (this.albums.Count > 0)
-            {
-                Console.WriteLine("Albums by " + this.Name);
-                foreach (Album a in this.albums)
-                {
-                    Console.WriteLine(a.Name);
-                }
-            }
-            else
-            {
-                Console.WriteLine("No information aobout the albums");
-            }
-
-        }
-
         public void register_song(Song song)
         {
             this.songs.Add(song);
-            song.Song_performer = this;
+            song.Performer = this;
         }
 
         public void register_album(Album album)
         {
             this.albums.Add(album);
-            album.Album_performer = this;
-        }
-    }
-
-    class Song : MusContent, IEquatable<Song>
-    {
-        public DateTime Release_date { get; private set; }
-        public Genre Mus_genre { get; private set; }
-        public Performer Song_performer { get; set; }
-        public Album Song_album { get; set; }
-
-        public bool Equals(Song other)
-        {
-            return (this.Name == other.Name &&
-                this.Release_date == other.Release_date &&
-                this.Mus_genre == other.Mus_genre &&
-                this.Song_performer == other.Song_performer);
+            album.Performer = this;
         }
 
+        // Equatable contract 
         public override int GetHashCode()
         {
             return base.GetHashCode();
         }
 
-        public Song(string name, Genre mus_genre, DateTime release_date)
+        public bool Equals(Performer other)
+        {
+            Console.WriteLine("INSIDE Performer EQUALITY CHECK");
+            bool albums_equality = this.albums.Count == other.albums.Count;
+            if (albums_equality)
+            {
+                for (int i = 0; i < this.albums.Count; i++)
+                {
+                    albums_equality = albums_equality && this.albums[i] == other.albums[i];
+                    if (!albums_equality) break;
+                }
+            }
+            return (this.Name == other.Name &&
+                this.Formation_date == other.Formation_date &&
+                albums_equality);
+        }
+
+    }
+
+    class Song : MusContent
+    {
+        public Album Song_album { get; set; }
+
+        public Song(string name, string mus_genre, DateTime release_date)
         {
             this.Name = name;
-            this.Mus_genre = mus_genre;
+            this.Genre = mus_genre;
             this.Release_date = release_date;
         }
 
         public override void show_info()
         {
             Console.WriteLine("Song: " + this.Name);
-            Console.WriteLine("Genre: " + this.Mus_genre.Name);
+            Console.WriteLine("Genre: " + this.Genre);
             Console.WriteLine("Release year: " + this.Release_date.Year);
-            if (this.Song_performer != null)
+            if (this.Performer != null)
             {
-                Console.WriteLine("Performed by: " + this.Song_performer.Name);
+                Console.WriteLine("Performed by: " + this.Performer.Name);
             }
             if (this.Song_album != null)
             {
                 Console.WriteLine("Album: " + this.Song_album.Name);
             }
 
-        }
-    }
-
-    class Genre : MusContent, IEquatable<Genre>
-    {
-        public Genre(string name)
-        {
-            this.Name = name;
-        }
-
-        public override void show_info()
-        {
-            Console.WriteLine("Genre: " + this.Name);
-        }
-
-        public bool Equals(Genre other)
-        {
-            return this.Name == other.Name;
-        }
-
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
         }
     }
 
@@ -495,14 +452,8 @@ namespace Lab1
             List<T> found_content = new List<T>();
             foreach (T thing in this.innerCollection)
             {
-                if (thing is Song && (thing as Song).Mus_genre.Name.ToLower() == query_name)
-                {
+                if (thing.Genre.ToLower() == query_name)
                     found_content.Add(thing);
-                }
-                else if (thing is Album && (thing as Album).Album_genre.Name.ToLower() == query_name)
-                {
-                    found_content.Add(thing);
-                }
             }
             return found_content;
         }
@@ -535,21 +486,10 @@ namespace Lab1
             }
             foreach (T contentPiece in this.innerCollection)
             {
-                if (contentPiece is Song)
+                int year = contentPiece.Release_date.Year;
+                if (year >= interval_start && year <= interval_finish)
                 {
-                    int year = (contentPiece as Song).Release_date.Year;
-                    if (year >= interval_start && year <= interval_finish)
-                    {
-                        found_content.Add(contentPiece);
-                    }
-                }
-                else if (contentPiece is Album)
-                {
-                    int year = (contentPiece as Album).Release_date.Year;
-                    if (year >= interval_start && year <= interval_finish)
-                    {
-                        found_content.Add(contentPiece);
-                    }
+                    found_content.Add(contentPiece);
                 }
             }
             return found_content;
@@ -574,9 +514,11 @@ namespace Lab1
 
         public bool Contains(T item)
         {
+            Console.WriteLine("Start search in constains method");
             bool found = false;
             foreach (T contentPiece in this.innerCollection)
             {
+                contentPiece.show_info(); // fixme remove
                 if (item.Equals(contentPiece)) found = true;
             }
             return found;
@@ -642,6 +584,11 @@ namespace Lab1
             }
             return result;
         }
+
+        public void sort(IComparer<T> comparer)
+        {
+            this.innerCollection.Sort(comparer);
+        }
     }
 
 
@@ -701,7 +648,7 @@ namespace Lab1
             GenericLibrary<MusContent> lib = new GenericLibrary<MusContent>();
 
             // generate content
-            Genre heavy_metal = new Genre("heavy metal");
+            string heavy_metal = "heavy metal";
             Performer iron_maiden = new Performer("Iron Maiden", heavy_metal, new DateTime(1975, 1, 1));
 
             // ============= SEVENTH OF THE SEVENTH SON ALBUM =============
@@ -753,7 +700,7 @@ namespace Lab1
             lib.Add(piece_of_mind_album);
 
             // ============= THE STARWHEEL ALBUM =============
-            Genre dark_ambient = new Genre("dark ambient");
+            string dark_ambient = "dark ambient";
             Performer kammarheit = new Performer("Kammarheit", dark_ambient, new DateTime(2000, 1, 1));
             DateTime the_starwheel_release = new DateTime(2005, 1, 1);
             Song hypnagoga = new Song("Hypnagoga", dark_ambient, the_starwheel_release);
@@ -777,10 +724,6 @@ namespace Lab1
             }
             kammarheit.register_album(the_starwheel_album);
             lib.Add(the_starwheel_album);
-
-            // add all performers
-            lib.Add(kammarheit);
-            lib.Add(iron_maiden);
             return lib;
         }
 
@@ -806,7 +749,7 @@ namespace Lab1
             // covariance example 
             GenericLibrary<Song> song_lib = new GenericLibrary<Song>();
             DateTime seventh_son_release = new DateTime(1988, 1, 1);
-            Song s1 = new Song("Moonchild", new Genre("heavy_metal"), seventh_son_release);
+            Song s1 = new Song("Moonchild", "heavy_metal", seventh_son_release);
             song_lib.Add(s1);
 
             IEnumerable<Song> song_cannon = (IEnumerable<Song>)song_lib;
@@ -821,13 +764,28 @@ namespace Lab1
             derived_printer.show_info(new Derived());
         }
 
-        static void Main(string[] args)
+        static void run_app()
         {
             GenericLibrary<MusContent> generic_lib  = build_generics_library();
             Context<MusContent> app = build_app();
             app.Context_library = generic_lib;
             app.run();            
-            //covar_contravar_examples();
+        }
+
+        static int sort_by_name(MusContent first, MusContent second)
+        {
+            return first.Name.CompareTo(second.Name);
+    
+        }
+
+        static int sort_by_genre(MusContent first, MusContent second)
+        {
+            return first.Genre.CompareTo(second.Genre);
+        }
+
+        static void Main(string[] args)
+        {
+            run_app();            
         }
     }
 }
