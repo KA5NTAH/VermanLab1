@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,21 @@ using System.Threading.Tasks;
 
 namespace Lab1
 {
+    class QueryEventArgs : EventArgs
+    {
+        public DateTime queryTime { get; }
+        public string query { get; }
+        public string stateTitle { get; }
+        public QueryEventArgs(DateTime queryTime, string query, string stateTitle)
+        {
+            this.queryTime = queryTime;
+            this.query = query;
+            this.stateTitle = stateTitle;
+        }
+    }
 
+
+    // ----------------- APP BLOCK -----------------
     class Context<T> where T : MusContent
     {
         public State<T> current_state { get; private set; }
@@ -50,6 +65,7 @@ namespace Lab1
 
     abstract class State<T> where T : MusContent
     {
+        public event EventHandler<QueryEventArgs> raiseQueryEvent;
         protected string title;
         protected const string title_frame = "======"; // string to be drawn from both sides of the title
         protected string state_description;
@@ -63,20 +79,23 @@ namespace Lab1
             child.Parent = this;
         }
 
-        public void handle_navigation(string user_input)
+        public bool handle_navigation(string user_input)
         {
             foreach (State<T> child in this.children)
             {
                 if (user_input == child.title)
                 {
                     Context.transitionToState(child);
+                    return true;
                 }
             }
 
             if (user_input == "BACK" && this.Parent != null)
             {
                 this.Context.transitionToState(this.Parent);
+                return true;
             }
+            return false;
         }
 
         public void draw_title_string()
@@ -99,6 +118,11 @@ namespace Lab1
 
         public abstract void handle(string user_input);
         public abstract void draw();
+        protected virtual void OnRaiseCustomEvent(QueryEventArgs e)
+        {
+            EventHandler<QueryEventArgs> raiseEvent = this.raiseQueryEvent;
+            raiseEvent?.Invoke(this, e);
+        }
     }
 
     class NavigationState<T> : State<T> where T : MusContent
@@ -129,8 +153,10 @@ namespace Lab1
         }
 
         public override void handle(string user_input)
-        {
-            this.handle_navigation(user_input);
+        {            
+            bool user_navigated = this.handle_navigation(user_input);
+            if (user_navigated) return;
+            OnRaiseCustomEvent(new QueryEventArgs(DateTime.Now, user_input, this.title));
             if (this.Context.current_state != this)
             {
                 return;
@@ -150,7 +176,7 @@ namespace Lab1
         {
             this.draw_navigation_guide();
             Console.WriteLine("Type the name to search for");
-        }
+        }        
     }
 
     class SearchByYearState<T> : State<T> where T : MusContent
@@ -163,7 +189,9 @@ namespace Lab1
 
         public override void handle(string user_input)
         {
-            this.handle_navigation(user_input);
+            bool user_navigated = this.handle_navigation(user_input);
+            if (user_navigated) return;
+            OnRaiseCustomEvent(new QueryEventArgs(DateTime.Now, user_input, this.title));
             if (this.Context.current_state != this)
             {
                 return;
@@ -196,7 +224,9 @@ namespace Lab1
 
         public override void handle(string user_input)
         {
-            this.handle_navigation(user_input);
+            bool user_navigated = this.handle_navigation(user_input);
+            if (user_navigated) return;
+            OnRaiseCustomEvent(new QueryEventArgs(DateTime.Now, user_input, this.title));
             if (this.Context.current_state != this)
             {
                 return;
@@ -218,11 +248,10 @@ namespace Lab1
             Console.WriteLine("Type the GENRE NAME to search for");
         }
     }
+    // ----------------- APP BLOCK -----------------
 
-    // todo denounce genre as class??
-    // todo denounce performer as content 
-    // todo denounce 
 
+    // ----------------- MUSIC BLOCK ----------------- 
     abstract class MusContent : IEquatable<MusContent>
     {
         public string Name { get; protected set; }
@@ -415,10 +444,9 @@ namespace Lab1
         }
     }
 
-    // todo migrate on generic library
+    // todo make generic library publish events
     class GenericLibrary<T> : ICollection<T> where T : MusContent
-    {
-
+    {        
         private List<T> innerCollection = new List<T>();
 
         public GenericLibrary()
@@ -590,6 +618,63 @@ namespace Lab1
             this.innerCollection.Sort(comparer);
         }
     }
+    // ----------------- MUSIC BLOCK ----------------- 
+
+    // ----------------- LAB4 BLOCK ----------------- 
+    enum LoggerMode
+    {
+        Console,
+        TextFile
+    }
+
+    class Logger<T> where T : MusContent
+    {
+        private LoggerMode mode; // fixme make mode enum 
+        private string logs_path = "logs.txt";
+        public Logger(LoggerMode mode)
+        {
+            this.mode = mode;
+        }
+        
+        public void SubscribeOnState(State<T> publisher)
+        {
+            publisher.raiseQueryEvent += LogEvent;
+        }
+
+        private string FormStringFromEventArgs(QueryEventArgs args)
+        {
+            string eventDescription = "";
+            eventDescription += ("QueryTime = " + args.queryTime.ToString());
+            eventDescription += "; ";
+            eventDescription += ("AppMode = " + args.stateTitle);
+            eventDescription += "; ";
+            eventDescription += ("Query = " + args.query);
+            return eventDescription;
+        }
+
+
+        private void LogEvent(object sender, QueryEventArgs args)
+        {
+            string eventDescription = this.FormStringFromEventArgs(args);
+            if (this.mode == LoggerMode.Console)
+                Console.WriteLine(eventDescription);
+            else
+            {
+                if (!File.Exists(this.logs_path))
+                {
+                    using (StreamWriter sw = File.CreateText(logs_path))
+                        sw.WriteLine(eventDescription);                        
+                }
+                else
+                {
+                    using (StreamWriter sw = File.AppendText(logs_path))
+                        sw.WriteLine(eventDescription);
+                }                
+            }
+        }
+
+    }
+    // ----------------- LAB4 BLOCK ----------------- 
 
 
     // contravariance sample classes
@@ -624,7 +709,7 @@ namespace Lab1
         }
     }
 
-    // comparer class 
+    // ----------------- LAB3 BLOCK ----------------- 
     class MusicalContentComparer<T> : IComparer<T> where T : MusContent
     {
         private Func<T, T, int> sort_method;
@@ -640,6 +725,8 @@ namespace Lab1
         }
 
     }
+    // ----------------- LAB3 BLOCK ----------------- 
+
 
     class Program
     {        
@@ -735,6 +822,14 @@ namespace Lab1
             SearchByNameState<MusContent> search_by_name = new SearchByNameState<MusContent>("SEARCH BY NAME", "search by name");
             SearchByYearState<MusContent> search_by_year = new SearchByYearState<MusContent>("SEARCH BY YEAR", "search by year");
             SearchByGenreState<MusContent> search_by_genre = new SearchByGenreState<MusContent>("SEARCH BY GENRE", "search by genre");
+
+            // Set up event logging
+            Logger<MusContent> logger = new Logger<MusContent>(LoggerMode.Console);
+            //Logger<MusContent> logger = new Logger<MusContent>(LoggerMode.TextFile);
+            logger.SubscribeOnState(search_by_year);
+            logger.SubscribeOnState(search_by_name);
+            logger.SubscribeOnState(search_by_genre);
+
             search.become_state_parent(search_by_name);
             search.become_state_parent(search_by_year);
             search.become_state_parent(search_by_genre);
