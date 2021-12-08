@@ -603,7 +603,7 @@ namespace Lab1
             for (int i = 0; i < innerCollection.Count; i++)
             {
                 T curContent = (T)this.innerCollection[i];
-                if (true)  // fixme write real condition
+                if (curContent.Equals(item))
                 {
                     this.innerCollection.RemoveAt(i);
                     result = true;
@@ -629,7 +629,7 @@ namespace Lab1
 
     class Logger<T> where T : MusContent
     {
-        private LoggerMode mode; // fixme make mode enum 
+        private LoggerMode mode; 
         private string logs_path = "logs.txt";
         public Logger(LoggerMode mode)
         {
@@ -676,39 +676,6 @@ namespace Lab1
     }
     // ----------------- LAB4 BLOCK ----------------- 
 
-
-    // contravariance sample classes
-    class Base
-    {
-        public virtual void print()
-        {
-            System.Console.WriteLine("Base print");
-        }
-    }
-    class Derived : Base 
-    {
-        public override void print()
-        {
-            System.Console.WriteLine("Derived print");
-        }
-    }
-    interface IPrinter<in T>
-    {
-        void show_info(T sample);
-    }
-    class ContravarianceSample<T> : IPrinter<T> where T : Base
-    {
-        public void show_info(T sample)
-        {
-            sample.print();
-        }
-
-        public void non_interface_foo()
-        {
-            Console.WriteLine("Non interface foo");
-        }
-    }
-
     // ----------------- LAB3 BLOCK ----------------- 
     class MusicalContentComparer<T> : IComparer<T> where T : MusContent
     {
@@ -723,7 +690,6 @@ namespace Lab1
             int sort_result = this.sort_method(first, second);
             return sort_result;
         }
-
     }
     // ----------------- LAB3 BLOCK ----------------- 
 
@@ -814,58 +780,26 @@ namespace Lab1
             return lib;
         }
 
-        static Context<MusContent> build_app()
-        {
-            State<MusContent> mainMenu = new NavigationState<MusContent>("MainMenu", "MainMenu");
-            NavigationState<MusContent> news = new NavigationState<MusContent>("NEWS", "see the latest news");
-            NavigationState<MusContent> search = new NavigationState<MusContent>("SEARCH", "search for specific things");
-            SearchByNameState<MusContent> search_by_name = new SearchByNameState<MusContent>("SEARCH BY NAME", "search by name");
-            SearchByYearState<MusContent> search_by_year = new SearchByYearState<MusContent>("SEARCH BY YEAR", "search by year");
-            SearchByGenreState<MusContent> search_by_genre = new SearchByGenreState<MusContent>("SEARCH BY GENRE", "search by genre");
-
-            // Set up event logging
-            Logger<MusContent> logger = new Logger<MusContent>(LoggerMode.Console);
-            //Logger<MusContent> logger = new Logger<MusContent>(LoggerMode.TextFile);
-            logger.SubscribeOnState(search_by_year);
-            logger.SubscribeOnState(search_by_name);
-            logger.SubscribeOnState(search_by_genre);
-
-            search.become_state_parent(search_by_name);
-            search.become_state_parent(search_by_year);
-            search.become_state_parent(search_by_genre);
-            mainMenu.become_state_parent(news);
-            mainMenu.become_state_parent(search);
-            Context<MusContent> app = new Context<MusContent>(mainMenu);
-            return app;
-        }
-
         static void covar_contravar_examples()
         {
             // covariance example 
-            GenericLibrary<Song> song_lib = new GenericLibrary<Song>();
+            Performer iron_maiden = new Performer("Iron Maiden", "heavy_metal", new DateTime(1975, 1, 1));
+            GenericLibrary<Song> song_lib = new GenericLibrary<Song>();            
             DateTime seventh_son_release = new DateTime(1988, 1, 1);
             Song s1 = new Song("Moonchild", "heavy_metal", seventh_son_release);
+            iron_maiden.register_song(s1);
             song_lib.Add(s1);
 
-            IEnumerable<Song> song_cannon = (IEnumerable<Song>)song_lib;
-            IEnumerable<MusContent> musical_cannon = song_cannon;
-            IEnumerator<Song> song_enum = song_cannon.GetEnumerator();
-            IEnumerator<MusContent> mus_enum = musical_cannon.GetEnumerator();
-
-            // contravariance examle 
-            ContravarianceSample<Base> contravar_sampe = new ContravarianceSample<Base>();
-            IPrinter<Base> base_printer = (IPrinter<Base>) contravar_sampe;
-            IPrinter<Derived> derived_printer = base_printer;
-            derived_printer.show_info(new Derived());
+            IEnumerable<Song> song_enumerable = (IEnumerable<Song>)song_lib;
+            IEnumerable<MusContent> musical_enumerable = song_enumerable;
+            IEnumerator<Song> song_enum = song_enumerable.GetEnumerator();
+            IEnumerator<MusContent> mus_enum = musical_enumerable.GetEnumerator();
+            song_enum.MoveNext();
+            mus_enum.MoveNext();
+            Console.WriteLine(song_enum.Current.Name);
+            Console.WriteLine(mus_enum.Current.Name);
         }
 
-        static void run_app()
-        {
-            GenericLibrary<MusContent> generic_lib  = build_generics_library();
-            Context<MusContent> app = build_app();
-            app.Context_library = generic_lib;
-            app.run();            
-        }
 
         static int sort_by_name(MusContent first, MusContent second)
         {
@@ -878,9 +812,41 @@ namespace Lab1
             return first.Genre.CompareTo(second.Genre);
         }
 
+
+        static void sort_example()
+        {
+            GenericLibrary<MusContent> generic_lib = build_generics_library();
+            generic_lib.sort(new MusicalContentComparer<MusContent>(sort_by_name));
+            foreach (MusContent gc in generic_lib) Console.WriteLine(gc.Name);
+        }
+
         static void Main(string[] args)
         {
-            run_app();            
+            sort_example();
+            //covar_contravar_examples();
+            GenericLibrary<MusContent> generic_lib = build_generics_library();
+            State<MusContent> mainMenu = new NavigationState<MusContent>("MainMenu", "MainMenu");
+            NavigationState<MusContent> news = new NavigationState<MusContent>("NEWS", "see the latest news");
+            NavigationState<MusContent> search = new NavigationState<MusContent>("SEARCH", "search for specific things");
+            SearchByNameState<MusContent> search_by_name = new SearchByNameState<MusContent>("SEARCH BY NAME", "search by name");
+            SearchByYearState<MusContent> search_by_year = new SearchByYearState<MusContent>("SEARCH BY YEAR", "search by year");
+            SearchByGenreState<MusContent> search_by_genre = new SearchByGenreState<MusContent>("SEARCH BY GENRE", "search by genre");
+
+            // Set up event logging
+            //Logger<MusContent> logger = new Logger<MusContent>(LoggerMode.Console);
+            Logger<MusContent> logger = new Logger<MusContent>(LoggerMode.TextFile);
+            logger.SubscribeOnState(search_by_year);
+            logger.SubscribeOnState(search_by_name);
+            logger.SubscribeOnState(search_by_genre);
+
+            search.become_state_parent(search_by_name);
+            search.become_state_parent(search_by_year);
+            search.become_state_parent(search_by_genre);
+            mainMenu.become_state_parent(news);
+            mainMenu.become_state_parent(search);
+            Context<MusContent> app = new Context<MusContent>(mainMenu);
+            app.Context_library = generic_lib;
+            app.run();
         }
     }
 }
