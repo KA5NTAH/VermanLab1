@@ -1,0 +1,4 @@
+QueryTime = 12/9/2021 1:17:30 AM; AppMode = SEARCH BY NAME; Query = asdf
+QueryTime = 12/9/2021 1:17:47 AM; AppMode = SEARCH BY NAME; Query = asdasfd
+QueryTime = 12/9/2021 1:17:49 AM; AppMode = SEARCH BY NAME; Query = asdsdcxvasawer
+QueryTime = 12/9/2021 1:17:50 AM; AppMode = SEARCH BY NAME; Query = xzcvawer

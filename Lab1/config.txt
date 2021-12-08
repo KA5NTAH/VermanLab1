@@ -1,0 +1,4 @@
+log_type:file
+use_name_search:true
+use_genre_search:false
+use_year_search:false

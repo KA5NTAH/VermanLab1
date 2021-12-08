@@ -21,6 +21,52 @@ namespace Lab1
             this.stateTitle = stateTitle;
         }
     }
+    
+    class WrongConfigFormatException : Exception
+    {
+        public WrongConfigFormatException()
+        {
+        }
+
+        public WrongConfigFormatException(string message) : base(message)
+        {
+        }
+
+        public WrongConfigFormatException(string message, Exception inner) : base(message, inner)
+        {
+        }
+    }
+
+    class NonConfigurablePrameterException : Exception
+    {
+        public NonConfigurablePrameterException()
+        {
+        }
+
+        public NonConfigurablePrameterException(string message) : base(message)
+        {
+        }
+
+        public NonConfigurablePrameterException(string message, Exception inner) : base(message, inner)
+        {
+        }
+    }
+
+    class InvalidSearchRangeException : Exception
+    {
+        public InvalidSearchRangeException()
+        {
+        }
+
+        public InvalidSearchRangeException(string message) : base(message)
+        {
+        }
+
+        public InvalidSearchRangeException(string message, Exception inner) : base(message, inner)
+        {
+        }
+    }
+
 
 
     // ----------------- APP BLOCK -----------------
@@ -494,32 +540,28 @@ namespace Lab1
             try
             {
                 string[] interval = query_name.Split(' ');
-                if (interval.Length != 2)
-                {
-                    Console.WriteLine("Invalid interval");
-                    return found_content;
-                }
+                if (interval.Length != 2) throw new InvalidSearchRangeException("Invalid interval");
                 interval_start = int.Parse(interval[0]);
                 interval_finish = int.Parse(interval[1]);
-                if (interval_start > interval_finish)
+                if (interval_start > interval_finish) throw new InvalidSearchRangeException("Interval length should be more than 0");
+
+                foreach (T contentPiece in this.innerCollection)
                 {
-                    Console.WriteLine("Interval length should be more than 0");
-                    return found_content;
+                    int year = contentPiece.Release_date.Year;
+                    if (year >= interval_start && year <= interval_finish)
+                    {
+                        found_content.Add(contentPiece);
+                    }
                 }
             }
-            catch
+            catch (InvalidSearchRangeException e)
             {
-                Console.WriteLine("Invalid interval");
-                return found_content;
+                Console.WriteLine(e.Message);
             }
-            foreach (T contentPiece in this.innerCollection)
+            catch (FormatException e)
             {
-                int year = contentPiece.Release_date.Year;
-                if (year >= interval_start && year <= interval_finish)
-                {
-                    found_content.Add(contentPiece);
-                }
-            }
+                Console.WriteLine(e.Message);
+            }            
             return found_content;
         }
 
@@ -629,11 +671,14 @@ namespace Lab1
 
     class Logger<T> where T : MusContent
     {
-        private LoggerMode mode; 
-        private string logs_path = "logs.txt";
+        private LoggerMode mode;
+        private string logs_path;
         public Logger(LoggerMode mode)
         {
             this.mode = mode;
+            string current_dir = Directory.GetCurrentDirectory();
+            string log_dir = Path.Combine(current_dir, "..", "..");
+            this.logs_path = Path.Combine(log_dir, "log.txt");
         }
         
         public void SubscribeOnState(State<T> publisher)
@@ -695,7 +740,15 @@ namespace Lab1
 
 
     class Program
-    {        
+    {
+        static IReadOnlyDictionary<string, string> defaultConfig = new Dictionary<string, string>
+        {
+            {"log_type", "file"},  // text file
+            {"use_name_search", "true"},
+            {"use_genre_search", "true"},
+            {"use_year_search", "true"}
+        }; 
+
         static GenericLibrary<MusContent> build_generics_library()
         {
             GenericLibrary<MusContent> lib = new GenericLibrary<MusContent>();
@@ -820,10 +873,55 @@ namespace Lab1
             foreach (MusContent gc in generic_lib) Console.WriteLine(gc.Name);
         }
 
+        static IReadOnlyDictionary<string, string> read_config()
+        {
+            Dictionary<string, string> cfg = defaultConfig.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            try
+            {                
+                string current_dir = Directory.GetCurrentDirectory();
+                string config_dir = Path.Combine(current_dir, "..", "..");
+                string configPath = Path.Combine(config_dir, "config.txt");
+                string[] lines = System.IO.File.ReadAllLines(configPath);
+                foreach (string line in lines)
+                {
+                    string[] kvPair = line.Split(':');
+                    if (kvPair.Length != 2) throw new WrongConfigFormatException();
+                    string key = kvPair[0];
+                    string value = kvPair[1];
+                    if (!cfg.ContainsKey(key)) throw new NonConfigurablePrameterException();
+                    cfg[key] = value;
+                }
+            }
+            catch (System.IO.FileNotFoundException)
+            {
+                Console.WriteLine("Config is missing");
+            }
+
+            catch (WrongConfigFormatException)
+            {
+                Console.WriteLine("Invalid config format");
+            }
+
+            catch (NonConfigurablePrameterException)
+            {
+                Console.WriteLine("This parameter cannot be set");
+            }
+            return cfg;
+        }
+
         static void Main(string[] args)
         {
-            sort_example();
             //covar_contravar_examples();
+            IReadOnlyDictionary<string, string> config = read_config();
+            Console.WriteLine("Config");
+            foreach (KeyValuePair<string, string> kv in config)
+            {
+                Console.WriteLine(kv.Key + " : " + kv.Value);    
+            }
+            Console.WriteLine("#########");
+
+            read_config();
+
             GenericLibrary<MusContent> generic_lib = build_generics_library();
             State<MusContent> mainMenu = new NavigationState<MusContent>("MainMenu", "MainMenu");
             NavigationState<MusContent> news = new NavigationState<MusContent>("NEWS", "see the latest news");
@@ -833,15 +931,74 @@ namespace Lab1
             SearchByGenreState<MusContent> search_by_genre = new SearchByGenreState<MusContent>("SEARCH BY GENRE", "search by genre");
 
             // Set up event logging
-            //Logger<MusContent> logger = new Logger<MusContent>(LoggerMode.Console);
-            Logger<MusContent> logger = new Logger<MusContent>(LoggerMode.TextFile);
-            logger.SubscribeOnState(search_by_year);
-            logger.SubscribeOnState(search_by_name);
-            logger.SubscribeOnState(search_by_genre);
+            string logger_mode = config["log_type"];
+            LoggerMode log_mode;
+            if (logger_mode != "file" && logger_mode != "text")
+                logger_mode = defaultConfig["log_type"];
+            if (logger_mode == "file") 
+            {
+                log_mode = LoggerMode.TextFile;
+            }
+            else 
+            {
+                log_mode = LoggerMode.Console;
+            }
+            Logger<MusContent> logger = new Logger<MusContent>(log_mode);
+            // build app 
 
-            search.become_state_parent(search_by_name);
-            search.become_state_parent(search_by_year);
-            search.become_state_parent(search_by_genre);
+            // search by name 
+            bool include_search_by_name;
+            try
+            {
+                include_search_by_name = Convert.ToBoolean(config["use_name_search"]);
+            }
+            catch (FormatException e)
+            {
+                Console.WriteLine("Invalid config paramter falling back to default");
+                include_search_by_name = Convert.ToBoolean(defaultConfig["use_name_search"]);
+            }
+            if (include_search_by_name)
+            {
+                logger.SubscribeOnState(search_by_name);
+                search.become_state_parent(search_by_name);
+            }
+
+
+            // serach by year 
+            bool include_search_by_year_;
+            try
+            {
+                include_search_by_year_ = Convert.ToBoolean(config["use_year_search"]);
+            }
+            catch
+            {
+                Console.WriteLine("Invalid config paramter falling back to default");
+                include_search_by_year_ = Convert.ToBoolean(defaultConfig["use_year_search"]);
+            }
+            if (include_search_by_year_)
+            {
+                logger.SubscribeOnState(search_by_year);
+                search.become_state_parent(search_by_year);
+            }
+
+            // serach by name
+            bool include_search_by_genre;
+            try
+            {
+                include_search_by_genre = Convert.ToBoolean(config["use_genre_search"]);
+            }
+            catch (FormatException e)
+            {
+                Console.WriteLine("Invalid config paramter falling back to default");
+                include_search_by_genre = Convert.ToBoolean(defaultConfig["use_genre_search"]);
+            }
+
+            if (include_search_by_genre)
+            {
+                logger.SubscribeOnState(search_by_genre);
+                search.become_state_parent(search_by_genre);
+            }
+                      
             mainMenu.become_state_parent(news);
             mainMenu.become_state_parent(search);
             Context<MusContent> app = new Context<MusContent>(mainMenu);
